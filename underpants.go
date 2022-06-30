@@ -301,17 +301,19 @@ func userMemberOf(c *conf, u *user, groups []string) bool {
 }
 
 func setJWTCookie(d *disp, w http.ResponseWriter, u *user) {
-	token, err := generateJWT(d.config.Host, u.Email, d.jwtSecret)
-	if err == nil {
-		http.SetCookie(w, &http.Cookie{
-			Name:   "jwt_cookie",
-			Value:  token,
-			Path:   "/",
-			Secure: true,
-			Domain: d.config.cookieDomain(),
-		})
-	} else {
-		panic(err)
+	if d.config.UseHTTPS() {
+		token, err := generateJWT(d.config.Host, u.Email, d.jwtSecret)
+		if err == nil {
+			http.SetCookie(w, &http.Cookie{
+				Name:   "jwt_cookie",
+				Value:  token,
+				Path:   "/",
+				Secure: true,
+				Domain: d.config.cookieDomain(),
+			})
+		} else {
+			panic(err)
+		}
 	}
 }
 
@@ -355,9 +357,7 @@ func serveHttpProxy(d *disp, w http.ResponseWriter, r *http.Request) {
 	defer bp.Body.Close()
 
 	//Set the JWT Cookie if its safe to do so.
-	if d.config.UseHTTPS() {
-		setJWTCookie(d, w, u)
-	}
+	setJWTCookie(d, w, u)
 
 	copyHeaders(w.Header(), bp.Header)
 	w.WriteHeader(bp.StatusCode)
